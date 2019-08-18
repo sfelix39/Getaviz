@@ -1,24 +1,24 @@
 version: "3"
 services:
-    db:
-        image: mysql:5.7
-        environment:
-            MYSQL_ROOT_PASSWORD: dbpassword_for_user
-            MYSQL_DATABASE: eval_server_development
-            MYSQL_USER: db_username
-            MYSQL_PASSWORD: dbpassword_for_user
-        restart: always
-    eval:
-        build: evaluationserver
-        restart: always
-        env_file: evaluationserver/env
-        command: "./bin/wait-for-it.sh db:3306 -s -t 30 -- ./bin/docker_start"
+    # db:
+        # image: mysql:5.7
+        # environment:
+            # MYSQL_ROOT_PASSWORD: dbpassword_for_user
+            # MYSQL_DATABASE: eval_server_development
+            # MYSQL_USER: db_username
+            # MYSQL_PASSWORD: dbpassword_for_user
+        # restart: always
+    # eval:
+        # build: evaluationserver
+        # restart: always
+        # env_file: evaluationserver/env
+        # command: "./bin/wait-for-it.sh db:3306 -s -t 30 -- ./bin/docker_start"
         #volumes:
         #- ./evaluationserver:/usr/src/app
-        ports:
-            - "8081:8081" 
-        depends_on:
-            - db
+        # ports:
+            # - "8081:8081" 
+        # depends_on:
+            # - db
     frontend:
         build: ui/
         restart: always
@@ -46,7 +46,6 @@ services:
             - default
         depends_on:
             - neo4j
-            - volumes-provisioner
     neo4j:
         image: neo4j:3.5.1
         restart: always
@@ -57,12 +56,6 @@ services:
             NEO4J_AUTH: "none"
         networks:
             - default
-    volumes-provisioner:
-        image: hasnat/volumes-provisioner
-        environment:
-            PROVISION_DIRECTORIES: "100:101:0755:/var/data"
-        volumes:
-            - data-gen:/var/data
 volumes:
   data-gen:
     

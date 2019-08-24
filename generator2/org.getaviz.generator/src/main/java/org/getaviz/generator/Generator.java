@@ -1,5 +1,7 @@
 package org.getaviz.generator;
 
+import java.util.Locale;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.getaviz.generator.city.m2m.City2City;
@@ -18,11 +20,13 @@ public class Generator {
 	private static Log log = LogFactory.getLog(Generator.class);
 
 	public static void main(String[] args) {
+		config.loadConfig("C:\\Users\\s_fel\\Getaviz\\src\\Getaviz\\generator2\\org.getaviz.generator\\settings.properties");
 		run();
 	}
 
 	public static void run() {
 		log.info("Generator started");
+		Locale.setDefault(Locale.US);
 		try {
 			if(!config.isSkipScan()) {
 				new DatabaseBuilder();

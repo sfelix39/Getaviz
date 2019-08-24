@@ -56,7 +56,7 @@ public class SettingsConfiguration {
 		new File(instance.getOutputPath()).mkdirs();
 	}
 
-	private static void loadConfig(String path) {
+	public static void loadConfig(String path) {
 		File file = new File(path);
 		try {
 			Configurations configs = new Configurations();

@@ -25,7 +25,7 @@ public class DatabaseBuilder {
 		log.info("jQA scan started.");
 		log.info("Scanning from URI(s) " + config.getInputFiles());
 		try {
-			Process pScan = runtime.exec("/opt/jqassistant/bin/jqassistant.sh scan -reset -u " + config.getInputFiles() + " -storeUri " +
+			Process pScan = runtime.exec("C:\\Users\\s_fel\\Downloads\\jqassistant-commandline-neo4jv3-1.6.0-distribution\\jqassistant-commandline-neo4jv3-1.6.0\\bin\\jqassistant.cmd scan -reset -u " + config.getInputFiles() + " -storeUri " +
 					DatabaseConnector.getDatabaseURL());
 			pScan.waitFor();
 		} catch (InterruptedException e) {

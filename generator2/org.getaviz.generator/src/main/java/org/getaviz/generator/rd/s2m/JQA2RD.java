@@ -3,10 +3,14 @@ package org.getaviz.generator.rd.s2m;
 import org.getaviz.generator.SettingsConfiguration;
 import org.getaviz.generator.database.Labels;
 import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.jar.JarFile;
+
 import org.getaviz.generator.SettingsConfiguration.OutputFormat;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.getaviz.generator.database.DatabaseConnector;
+import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.types.Node;
 
@@ -23,6 +27,9 @@ public class JQA2RD {
 				"CREATE (m:Model:RD {date: \'%s\'})-[:USED]->(c:Configuration:RD {method_type_mode: \'%s\', method_disks: \'%s\', data_disks:\'%s\'})",
 				new GregorianCalendar().getTime().toString(), config.isMethodTypeMode(), config.isMethodDisks(), config.isDataDisks()),
 			"m").id();
+			
+		//long depParent = dependencyToDisk(model);
+
 		StatementResult results = connector.executeRead(
 			"MATCH (n:Package) " + 
 			"WHERE NOT (n)<-[:CONTAINS]-(:Package) " + 
@@ -34,20 +41,125 @@ public class JQA2RD {
 		log.info("JQA2RD finished");
 	}
 
+	//#region Test
+	// private long dependencyToDisk(long model) {
+	// 	String properties = String.format("ringWidth: %f, height: %f, transparency: %f", config.getRDRingWidth(),
+	// 	config.getRDHeight(), config.getRDNamespaceTransparency());
+	// 	StatementResult result = connector.executeRead(
+	// 		"MATCH (n:Maven) " + 
+	// 		"WHERE n.artifactId=\"my-app\"" + 
+	// 		"RETURN n"
+	// 	);
+	// 	Long id = result.single().get("n").asNode().id();
+	// 	//102650L
+	// 	long depParent = connector.addNode(cypherCreateNode(model, id, Labels.Disk.name(), properties), "n").id();
+
+	// 	//#region Ermittlung der Dependencies
+	// 	StatementResult results = connector.executeRead(
+	// 		"MATCH (c:Class)-[:DEPENDS_ON]->(f:File) " +
+	// 		"WHERE c.name=\"App\" AND f.fileName CONTAINS \"LogFactory\" " +
+	// 		"RETURN f.fileName"
+	// 	);
+
+	// 	results.forEachRemaining((node) -> {
+	// 		String format = String.format("MATCH(f:File)<-[:CONTAINS]-(j:Jar) " +
+	// 		//"WHERE f.fileName=\"/org/apache/commons/logging/LogFactory.class\" "+
+	// 		"WHERE f.fileName = \"%s\"" +
+	// 		"RETURN j.fileName", node.get("f.fileName").asString());
+	// 		log.info(format);
+	// 		StatementResult jarFiles = connector.executeRead(format);
+	// 	jarFiles.forEachRemaining((x) -> {
+	// 		String format2 = String.format("MATCH (j:Jar)-[:CONTAINS]->(f:Pom) "+
+	// 		//"WHERE j.fileName CONTAINS \"/WEB-INF/lib/commons-logging-1.2.jar\" " +
+	// 		"WHERE j.fileName CONTAINS %s " +
+	// 		"RETURN f", x.get("j.fileName"));
+	// 		log.info(format2);
+	// 		StatementResult dependenciesRaw = connector.executeRead(
+	// 			format2
+	// 		);
+	// 		dependenciesRaw.forEachRemaining((y)->{
+	// 			Node yAsNode = y.get("f").asNode();
+	// 			String format3 = String.format("MATCH (p:Pom)-[:DECLARES_DEPENDENCY]->(d) "+
+	// 			//"WHERE p.fileName CONTAINS \"getaviz\" AND d.group=\"commons-logging\" AND d.name=\"commons-logging\" AND d.version=\"1.2\" "+
+	// 			"WHERE d.group=%s AND d.name=%s AND d.version=%s "+
+	// 			"RETURN d", yAsNode.get("groupId"), yAsNode.get("artifactId"), yAsNode.get("version"));
+	// 			log.info(format3);
+	// 			StatementResult dependencies = connector.executeRead(format3);
+	// 		dependencies.forEachRemaining((z) -> dependencyToDiskSegment(z.get("d").asNode(), depParent));
+	// 		});
+	// 	});
+	// 	});
+
+	// 	//#endregion
+
+	// 	return depParent;
+	// }
+	//#endregion
+	
+	private void dependencyToDiskSegment(Node dependency, Long parent) {
+		double frequency = 0.0;
+		double luminance = 0.0;
+		double height = config.getRDHeight();
+		String color = config.getRDMethodColorAsPercentage();
+		if (config.getOutputFormat() == OutputFormat.AFrame) {
+			color = config.getRDMethodColorHex();
+		}
+		Integer numberOfStatements = 1;
+		double size = numberOfStatements.doubleValue();
+		if (numberOfStatements <= config.getRDMinArea()) {
+			size = config.getRDMinArea();
+		}
+		String properties = String.format(
+			"frequency: %f, luminance: %f, height: %f, transparency: %f, size: %f, color: \'%s\'", frequency, luminance,
+			height, config.getRDMethodTransparency(), size, color);
+		connector.executeWrite(cypherCreateNode(parent, dependency.id(), Labels.DiskSegment.name(), properties));
+	}
+
 	private void namespaceToDisk(Long namespace, Long parent) {
 		String properties = String.format("ringWidth: %f, height: %f, transparency: %f", config.getRDRingWidth(),
 			config.getRDHeight(), config.getRDNamespaceTransparency());
 		long disk = connector.addNode(cypherCreateNode(parent, namespace, Labels.Disk.name(), properties), "n").id();
-		connector.executeRead("MATCH (n)-[:CONTAINS]->(t:Type) WHERE ID(n) = " + namespace +
-			" AND EXISTS(t.hash) AND (t:Class OR t:Interface OR t:Annotation OR t:Enum) AND NOT t:Inner RETURN t").
-			forEachRemaining((result) -> {
+		StatementResult executeRead = connector.executeRead("MATCH (n)-[:CONTAINS]->(t:Type) WHERE ID(n) = " + namespace +
+			" AND EXISTS(t.hash) AND (t:Class OR t:Interface OR t:Annotation OR t:Enum) AND NOT t:Inner RETURN t");
+		List<Record> recs = executeRead.list();
+		if(recs != null)	
+		{	
+			recs.forEach((result) -> {
 				structureToDisk(result.get("t").asNode(), disk);
 			});
+
+			if(recs.size() > 0)
+			{
+				dependencyToDisk(namespace, disk);
+			}
+		}
 		connector.executeRead("MATCH (n)-[:CONTAINS]->(p:Package) WHERE ID(n) = " + namespace +
 			" AND EXISTS(p.hash) RETURN p").
 			forEachRemaining((result) -> {
 				namespaceToDisk(result.get("p").asNode().id(), disk);
 			});
+	}
+
+	private void dependencyToDisk(Long namespace, long disk) {
+		List<Record> rec = connector.executeRead("MATCH (n)-[:CONTAINS]->(c:Class)-[:DEPENDS_ON]->(fa:File),(f:File)<-[:CONTAINS]-(j:Jar)-[:CONTAINS]->(g:Pom),(q:Pom)-[:DECLARES_DEPENDENCY]->(d)" +
+		" where ID(n) = " + namespace +
+		" AND fa.fileName = f.fileName"+
+		" and d.group = g.groupId"+
+		" and d.name = g.artifactId"+
+		" and d.version = g.version"+
+		" RETURN c.name,fa.name, f.fileName, j.fileName, g.name, d").list();
+		if(rec != null && rec.size() > 0)
+		{
+			long depsId = connector.addNode("CREATE (n:Dependency{namespace: "+namespace+"})", "n").id();
+			connector.executeWrite(String.format("MATCH (d:Dependency), (n) WHERE ID(d) =%d AND ID(n)=%d "+
+			"CREATE (d)-[:DEPS]->(n)", depsId, namespace));
+			String properties = String.format("ringWidth: %f, height: %f, transparency: %f", config.getRDRingWidth(),
+			config.getRDHeight(), config.getRDNamespaceTransparency());
+			long depDisk = connector.addNode(cypherCreateNode(disk, depsId, Labels.Disk.name(), properties), "n").id();
+			rec.forEach((result) -> {
+				dependencyToDiskSegment(result.get("d").asNode(), depDisk);
+			});
+		}
 	}
 
 	private void structureToDisk(Node structure, Long parent) {

@@ -117,6 +117,10 @@ public class RD2AFrame {
 		StringBuilder builder = new StringBuilder();
 		for (final Node segment : segments) {
 			Node entity = connector.getVisualizedEntity(segment.id());
+			Object o = segment.get("innerRadius").asObject();
+			if(o == null)
+				o = null;
+
 			if (segment.get("innerRadius").asDouble() == 0) {
 				builder.append("<a-circle id=\"" + entity.get("hash").asString() + "\"");
 				builder.append("\n");

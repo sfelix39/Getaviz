@@ -1,7 +1,10 @@
 package org.getaviz.generator;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Locale;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.getaviz.generator.city.m2m.City2City;
@@ -46,8 +49,11 @@ public class Generator {
 			}
 			case RD: {
 				new JQA2RD();
+				log.info("JQA2RD");
 				new JQA2JSON();
+				log.info("JQA2JSON");
 				new RD2RD();
+				log.info("RD2RD");
 				switch (config.getOutputFormat()) {
 				case X3D: {
 					new RD2X3D();
@@ -55,6 +61,7 @@ public class Generator {
 				}
 				case AFrame: {
 					new RD2AFrame();
+					log.info("Fertig");
 					break;
 				}
 				}
@@ -63,7 +70,10 @@ public class Generator {
 			}
 
 		} catch (Exception e) {
-			log.error(e);
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			log.error(sw.toString());
 		}
 	}
 }

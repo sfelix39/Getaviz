@@ -170,6 +170,7 @@ public class RD2RD {
 			double b_methods = r_methods - r_data;
 			List<Node> diskMethods = Lists.newArrayList(RDUtils.getMethods(disk.id()));
 			List<Node> diskData = Lists.newArrayList(RDUtils.getData(disk.id()));
+			List<Node> diskDependencies = Lists.newArrayList(RDUtils.getDependencies(disk.id()));
 			if (!diskMethods.isEmpty()) {
 				calculateCrossSection(diskMethods, b_methods, height);
 				calculateSpines(diskMethods, r_methods - 0.5 * b_methods);
@@ -185,6 +186,16 @@ public class RD2RD {
 				calculateSpines(diskData, 0.5 * r_data);
 				if (config.getOutputFormat() == OutputFormat.AFrame) {
 					for (Node data : diskData) {
+						connector.executeWrite("MATCH (n) WHERE ID(n) = " + data.id() + " SET n.outerRadius = " + r_data
+								+ ", n.innerRadius = " + 0.0);
+					}
+				}
+			}
+			if (!diskDependencies.isEmpty()) {
+				calculateCrossSection(diskDependencies, r_data, height);
+				calculateSpines(diskDependencies, 0.5 * r_data);
+				if (config.getOutputFormat() == OutputFormat.AFrame) {
+					for (Node data : diskDependencies) {
 						connector.executeWrite("MATCH (n) WHERE ID(n) = " + data.id() + " SET n.outerRadius = " + r_data
 								+ ", n.innerRadius = " + 0.0);
 					}
@@ -213,6 +224,18 @@ public class RD2RD {
 				calculateSpines(diskData, r_data - 0.5 * b_data);
 				if (config.getOutputFormat() == OutputFormat.AFrame) {
 					for (Node data : diskData) {
+						connector.executeWrite("MATCH (n) WHERE ID (n)= " + data.id() + " SET n.outerRadius = " + r_data
+								+ ", n.innerRadius = " + (r_data - b_data));
+					}
+				}
+			}
+
+			List<Node> dependencyData = Lists.newArrayList(RDUtils.getDependencies(disk.id()));
+			if (!dependencyData.isEmpty()) {
+				calculateCrossSection(dependencyData, b_data, height);
+				calculateSpines(dependencyData, r_data - 0.5 * b_data);
+				if (config.getOutputFormat() == OutputFormat.AFrame) {
+					for (Node data : dependencyData) {
 						connector.executeWrite("MATCH (n) WHERE ID (n)= " + data.id() + " SET n.outerRadius = " + r_data
 								+ ", n.innerRadius = " + (r_data - b_data));
 					}

@@ -1,7 +1,7 @@
 <?php
-$backend = gethostbyname(backend);
+$backend = gethostbyname("localhost");
 
-$url = "http://$backend:8080";
+$url = "http://localhost:8080";
 $model = $_REQUEST['input_name']; // is also used for redirect url
 $payload = array(
   'input.name'                      => $model,

@@ -40,7 +40,16 @@ public class RDUtils {
 			"RETURN d " +
 			"ORDER BY field.hash"
 		).stream().map(s -> s.get("d").asNode()).collect(Collectors.toList()).listIterator();
+		
+	}
 
+	public static Iterator<Node> getDependencies(Long disk) {
+		return connector.executeRead(
+			"MATCH (n)-[:CONTAINS]->(d:DiskSegment)-[:VISUALIZES]->(m) " +
+			"WHERE ID(n) = " + disk + " " + 
+			"RETURN d "
+		).stream().map(s -> s.get("d").asNode()).collect(Collectors.toList()).listIterator();
+		
 	}
 
 	public static double sum(Iterable<Node> segments) {

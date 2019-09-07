@@ -82,6 +82,14 @@ public class JQA2JSON {
 				builder.append(toMetaDataEnumValue(el));
 				builder.append("\n");
 			}
+			if ((el.hasLabel("Dependency") && el.hasLabel("Dependency"))) {
+				builder.append(toMetaDependency(el));
+				builder.append("\n");
+			}
+			if ((el.hasLabel("Maven") && el.hasLabel("Maven"))) {
+				builder.append(toMetaMaven(el));
+				builder.append("\n");
+			}
 		}
 		if (hasElements) {
 			builder.append("}]");
@@ -89,7 +97,27 @@ public class JQA2JSON {
 		return builder.toString();
 	}
 
-	private String toMetaDataNamespace(Node namespace) {
+	private String toMetaDataNamespace(Node dependency) {
+		StatementResult parentHash = connector
+				.executeRead("MATCH (d)-[:DEPS]->(namespace) WHERE ID(d) = " + dependency.id()
+						+ " RETURN namespace.hash");
+		String belongsTo = "root";
+		if (parentHash.hasNext()) {
+			belongsTo = parentHash.single().get("parent.hash").asString();
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append("\"id\":            \"" + dependency.id() + "\",");
+		builder.append("\n");
+		builder.append("\"name\":          \"" + dependency.get("namespace").asString() + "\",");
+		builder.append("\n");
+		builder.append("\"type\":          \"FAMIX.Namespace\",");
+		builder.append("\n");
+		builder.append("\"belongsTo\":     \"" + belongsTo + "\"");
+		builder.append("\n");
+		return builder.toString();
+	}
+
+	private String toMetaDependency(Node namespace) {
 		StatementResult parentHash = connector
 				.executeRead("MATCH (parent:Package)-[:CONTAINS]->(namespace) WHERE ID(namespace) = " + namespace.id()
 						+ " RETURN parent.hash");
@@ -105,6 +133,28 @@ public class JQA2JSON {
 		builder.append("\"name\":          \"" + namespace.get("name").asString() + "\",");
 		builder.append("\n");
 		builder.append("\"type\":          \"FAMIX.Namespace\",");
+		builder.append("\n");
+		builder.append("\"belongsTo\":     \"" + belongsTo + "\"");
+		builder.append("\n");
+		return builder.toString();
+	}
+
+	private String toMetaMaven(Node c) {
+		String belongsTo = "";
+		StatementResult parent = connector
+				.executeRead(String.format("MATCH (parent)-[:CONTAINS]->(n:RD)-[:VISUALIZES]->(s) where ID(s) = %d", c.id()));
+		if (parent.hasNext()) {
+			belongsTo = "" + parent.single().get("parent").asNode().id();
+		} 
+
+		StringBuilder builder = new StringBuilder();
+		builder.append("\"id\":            \"" + c.id() + "\",");
+		builder.append("\n");
+		builder.append("\"qualifiedName\": \"" + c.get("fqn").asString() + "\",");
+		builder.append("\n");
+		builder.append("\"name\":          \"" + c.get("name").asString() + "\",");
+		builder.append("\n");
+		builder.append("\"type\":          \"FAMIX.Class\",");
 		builder.append("\n");
 		builder.append("\"belongsTo\":     \"" + belongsTo + "\"");
 		builder.append("\n");

@@ -23,11 +23,12 @@ public class Generator {
 	private static Log log = LogFactory.getLog(Generator.class);
 
 	public static void main(String[] args) {
-		config.loadConfig("C:\\Users\\s_fel\\Getaviz\\src\\Getaviz\\generator2\\org.getaviz.generator\\settings.properties");
+		config.loadConfig("C:\\Users\\Felix\\Getaviz\\src\\generator2\\org.getaviz.generator\\settings.properties");
 		run();
 	}
 
 	public static void run() {
+		boolean rescan = true;
 		log.info("Generator started");
 		Locale.setDefault(Locale.US);
 		try {
@@ -48,10 +49,15 @@ public class Generator {
 				break;
 			}
 			case RD: {
-				new JQA2RD();
-				log.info("JQA2RD");
+				if(rescan)
+				{
+					new JQA2RD();
+					log.info("JQA2RD");
+				}
 				new JQA2JSON();
 				log.info("JQA2JSON");
+				if(!rescan)
+					break;
 				new RD2RD();
 				log.info("RD2RD");
 				switch (config.getOutputFormat()) {

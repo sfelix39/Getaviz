@@ -45,7 +45,7 @@ public class RDUtils {
 
 	public static Iterator<Node> getDependencies(Long disk) {
 		return connector.executeRead(
-			"MATCH (n)-[:CONTAINS]->(d:DiskSegment)-[:VISUALIZES]->(m) " +
+			"MATCH (n)-[:CONTAINS]->(d:DiskSegment)-[:VISUALIZES]->(m:Maven) " +
 			"WHERE ID(n) = " + disk + " " + 
 			"RETURN d "
 		).stream().map(s -> s.get("d").asNode()).collect(Collectors.toList()).listIterator();

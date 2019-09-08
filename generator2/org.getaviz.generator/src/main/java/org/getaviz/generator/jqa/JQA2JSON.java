@@ -12,7 +12,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.StringEscapeUtils;
 import org.getaviz.generator.database.DatabaseConnector;
+import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.Node;
 import java.util.Collections;
 
@@ -47,8 +49,14 @@ public class JQA2JSON {
 
 	private String toJSON(List<Node> list) {
 		StringBuilder builder = new StringBuilder();
+		boolean mavenBehandelt = false;
 		boolean hasElements = false;
 		for (final Node el : list) {
+
+			//ToDO: Wenn Maven am Ende steht wird ungültiges JSON erstellt
+			if(mavenBehandelt && el.hasLabel("Maven") )
+				continue;
+
 			if (!hasElements) {
 				hasElements = true;
 				builder.append("[{");
@@ -86,9 +94,10 @@ public class JQA2JSON {
 				builder.append(toMetaDependency(el));
 				builder.append("\n");
 			}
-			if ((el.hasLabel("Maven") && el.hasLabel("Maven"))) {
+			if ((el.hasLabel("Maven") && el.hasLabel("Maven"))&& !mavenBehandelt) {
 				builder.append(toMetaMaven(el));
 				builder.append("\n");
+				mavenBehandelt = true;
 			}
 		}
 		if (hasElements) {
@@ -98,9 +107,8 @@ public class JQA2JSON {
 	}
 
 	private String toMetaDataNamespace(Node dependency) {
-		StatementResult parentHash = connector
-				.executeRead("MATCH (d)-[:DEPS]->(namespace) WHERE ID(d) = " + dependency.id()
-						+ " RETURN namespace.hash");
+		StatementResult parentHash = connector.executeRead(
+				"MATCH (parent:Package)-[:CONTAINS]->(namespace) WHERE ID(namespace) = " + dependency.id() + " RETURN namespace.hash");
 		String belongsTo = "root";
 		if (parentHash.hasNext()) {
 			belongsTo = parentHash.single().get("parent.hash").asString();
@@ -119,20 +127,20 @@ public class JQA2JSON {
 
 	private String toMetaDependency(Node namespace) {
 		StatementResult parentHash = connector
-				.executeRead("MATCH (parent:Package)-[:CONTAINS]->(namespace) WHERE ID(namespace) = " + namespace.id()
+				.executeRead("MATCH (parent:Package)<-[:DEPS]-(namespace) WHERE ID(namespace) = " + namespace.id()
 						+ " RETURN parent.hash");
 		String belongsTo = "root";
 		if (parentHash.hasNext()) {
 			belongsTo = parentHash.single().get("parent.hash").asString();
 		}
 		StringBuilder builder = new StringBuilder();
-		builder.append("\"id\":            \"" + namespace.get("hash").asString() + "\",");
+		builder.append("\"id\":            \"" + namespace.id() + "\",");
 		builder.append("\n");
-		builder.append("\"qualifiedName\": \"" + namespace.get("fqn").asString() + "\",");
+		builder.append("\"qualifiedName\": \"" + namespace.get("namespace").asInt() + "\",");
 		builder.append("\n");
-		builder.append("\"name\":          \"" + namespace.get("name").asString() + "\",");
+		builder.append("\"name\":          \"" + namespace.get("namespace").asInt() + "\",");
 		builder.append("\n");
-		builder.append("\"type\":          \"FAMIX.Namespace\",");
+		builder.append("\"type\":          \"FAMIX.DependencyRing\",");
 		builder.append("\n");
 		builder.append("\"belongsTo\":     \"" + belongsTo + "\"");
 		builder.append("\n");
@@ -140,13 +148,30 @@ public class JQA2JSON {
 	}
 
 	private String toMetaMaven(Node c) {
-		String belongsTo = "";
-		StatementResult parent = connector
-				.executeRead(String.format("MATCH (parent)-[:CONTAINS]->(n:RD)-[:VISUALIZES]->(s) where ID(s) = %d", c.id()));
-		if (parent.hasNext()) {
-			belongsTo = "" + parent.single().get("parent").asNode().id();
-		} 
+		StringBuilder strB = new StringBuilder();
+		List<Record> recs = connector.executeRead(
+				"match (a:Dependency)<-[:VISUALIZES]-(c:RD:Disk)-[:CONTAINS]->(n:RD:DiskSegment)-[:VISUALIZES]->(m:Maven) "
+						+ "where ID(m) = " + c.id() + " return a")
+				.list();
+		int a = 0;
+		if (recs != null && recs.size() > 0) {
+			for(Record rec : recs)
+			{
+				if(a != 0)
+					strB.append("\n{");
 
+				strB.append(toMavenMetaDataDetail(rec.get("a").asNode(), c));
+
+				if(a != recs.size() -1)
+				strB.append("},");
+				a++;
+			}
+		}
+		return strB.toString();		
+	}
+
+	private String toMavenMetaDataDetail(Node parent, Node c) 
+	{
 		StringBuilder builder = new StringBuilder();
 		builder.append("\"id\":            \"" + c.id() + "\",");
 		builder.append("\n");
@@ -154,9 +179,9 @@ public class JQA2JSON {
 		builder.append("\n");
 		builder.append("\"name\":          \"" + c.get("name").asString() + "\",");
 		builder.append("\n");
-		builder.append("\"type\":          \"FAMIX.Class\",");
+		builder.append("\"type\":          \"FAMIX.Dependency\",");
 		builder.append("\n");
-		builder.append("\"belongsTo\":     \"" + belongsTo + "\"");
+		builder.append("\"belongsTo\":     \"" + parent.id() + "\"");
 		builder.append("\n");
 		return builder.toString();
 	}

@@ -170,6 +170,12 @@ var model = (function() {
 					entity.numberOfOpenSecurityIssues = element.numberOfOpenSecurityIssues;
 
 					break;
+				case  "DependencyRing":
+					entity.qualifiedName = element.name;
+					break;
+				case  "Dependency":
+						entity.qualifiedName = element.qualifiedName;
+						break;	
 				case  "ParameterizableClass":
 					entity.superTypes = element.subClassOf.split(",");
 					entity.subTypes = element.superClassOf.split(",");

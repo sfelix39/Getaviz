@@ -35,66 +35,18 @@ public class JQA2RD {
 			"WHERE NOT (n)<-[:CONTAINS]-(:Package) " + 
 			"RETURN n"
 		);
+		StatementResult results1 = connector.executeRead(
+			"MATCH (n:Dependency) DETACH DELETE n"
+		);
+		StatementResult results2 = connector.executeRead(
+			"MATCH (n)-[m:DEPS]->(q) DETACH DELETE m"
+		);
 		results.forEachRemaining((node) -> {
 			namespaceToDisk(node.get("n").asNode().id(), model);
 		});
 		log.info("JQA2RD finished");
 	}
 
-	//#region Test
-	// private long dependencyToDisk(long model) {
-	// 	String properties = String.format("ringWidth: %f, height: %f, transparency: %f", config.getRDRingWidth(),
-	// 	config.getRDHeight(), config.getRDNamespaceTransparency());
-	// 	StatementResult result = connector.executeRead(
-	// 		"MATCH (n:Maven) " + 
-	// 		"WHERE n.artifactId=\"my-app\"" + 
-	// 		"RETURN n"
-	// 	);
-	// 	Long id = result.single().get("n").asNode().id();
-	// 	//102650L
-	// 	long depParent = connector.addNode(cypherCreateNode(model, id, Labels.Disk.name(), properties), "n").id();
-
-	// 	//#region Ermittlung der Dependencies
-	// 	StatementResult results = connector.executeRead(
-	// 		"MATCH (c:Class)-[:DEPENDS_ON]->(f:File) " +
-	// 		"WHERE c.name=\"App\" AND f.fileName CONTAINS \"LogFactory\" " +
-	// 		"RETURN f.fileName"
-	// 	);
-
-	// 	results.forEachRemaining((node) -> {
-	// 		String format = String.format("MATCH(f:File)<-[:CONTAINS]-(j:Jar) " +
-	// 		//"WHERE f.fileName=\"/org/apache/commons/logging/LogFactory.class\" "+
-	// 		"WHERE f.fileName = \"%s\"" +
-	// 		"RETURN j.fileName", node.get("f.fileName").asString());
-	// 		log.info(format);
-	// 		StatementResult jarFiles = connector.executeRead(format);
-	// 	jarFiles.forEachRemaining((x) -> {
-	// 		String format2 = String.format("MATCH (j:Jar)-[:CONTAINS]->(f:Pom) "+
-	// 		//"WHERE j.fileName CONTAINS \"/WEB-INF/lib/commons-logging-1.2.jar\" " +
-	// 		"WHERE j.fileName CONTAINS %s " +
-	// 		"RETURN f", x.get("j.fileName"));
-	// 		log.info(format2);
-	// 		StatementResult dependenciesRaw = connector.executeRead(
-	// 			format2
-	// 		);
-	// 		dependenciesRaw.forEachRemaining((y)->{
-	// 			Node yAsNode = y.get("f").asNode();
-	// 			String format3 = String.format("MATCH (p:Pom)-[:DECLARES_DEPENDENCY]->(d) "+
-	// 			//"WHERE p.fileName CONTAINS \"getaviz\" AND d.group=\"commons-logging\" AND d.name=\"commons-logging\" AND d.version=\"1.2\" "+
-	// 			"WHERE d.group=%s AND d.name=%s AND d.version=%s "+
-	// 			"RETURN d", yAsNode.get("groupId"), yAsNode.get("artifactId"), yAsNode.get("version"));
-	// 			log.info(format3);
-	// 			StatementResult dependencies = connector.executeRead(format3);
-	// 		dependencies.forEachRemaining((z) -> dependencyToDiskSegment(z.get("d").asNode(), depParent));
-	// 		});
-	// 	});
-	// 	});
-
-	// 	//#endregion
-
-	// 	return depParent;
-	// }
-	//#endregion
 	
 	private void dependencyToDiskSegment(Node dependency, Long parent) {
 		double frequency = 0.0;
@@ -147,7 +99,7 @@ public class JQA2RD {
 		" and d.group = g.groupId"+
 		" and d.name = g.artifactId"+
 		" and d.version = g.version"+
-		" RETURN c.name,fa.name, f.fileName, j.fileName, g.name, d").list();
+		" RETURN distinct d").list();
 		if(rec != null && rec.size() > 0)
 		{
 			long depsId = connector.addNode("CREATE (n:Dependency{namespace: "+namespace+"})", "n").id();

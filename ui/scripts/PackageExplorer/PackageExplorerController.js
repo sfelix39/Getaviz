@@ -80,6 +80,7 @@ var packageExplorerController = (function() {
 						item = { id: entity.id, open: true, checked: true, parentId: entity.belongsTo.id, name: entity.name, icon: controllerConfig.projectIcon, iconSkin: "zt"};
 						break;
 					case "Namespace":
+					case "DependencyRing":
 						item = { id: entity.id, open: false, checked: true, parentId: entity.belongsTo.id, name: entity.name, icon: controllerConfig.packageIcon, iconSkin: "zt"};
 						break;
 					case "Class":
@@ -101,6 +102,7 @@ var packageExplorerController = (function() {
 						item = { id: entity.id, open: false, checked: true, parentId: entity.belongsTo.id, name: entity.name, icon: controllerConfig.fieldIcon, iconSkin: "zt"};
 						break;
 					case "Method":
+					case "Dependency":
 						item = { id: entity.id, open: false, checked: true, parentId: entity.belongsTo.id, name: entity.name, icon: controllerConfig.methodIcon, iconSkin: "zt"};
 						break;
 					

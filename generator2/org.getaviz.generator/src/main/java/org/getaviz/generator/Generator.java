@@ -27,7 +27,6 @@ public class Generator {
 	}
 
 	public static void run() {
-		boolean rescan = false;
 		log.info("Generator started");
 		Locale.setDefault(Locale.US);
 		try {
@@ -50,13 +49,12 @@ public class Generator {
 					break;
 				}
 				case RD: {
-					if (rescan)
+					
 						new JQA2RD();
 					log.info("JQA2RD");
 					new JQA2JSON();
 					log.info("JQA2JSON");
-					if (!rescan)
-						break;
+					
 					new RD2RD();
 					log.info("RD2RD");
 

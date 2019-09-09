@@ -23,56 +23,56 @@ public class Generator {
 	private static Log log = LogFactory.getLog(Generator.class);
 
 	public static void main(String[] args) {
-		config.loadConfig("C:\\Users\\Felix\\Getaviz\\src\\generator2\\org.getaviz.generator\\settings.properties");
 		run();
 	}
 
 	public static void run() {
-		boolean rescan = true;
+		boolean rescan = false;
 		log.info("Generator started");
 		Locale.setDefault(Locale.US);
 		try {
-			if(!config.isSkipScan()) {
+			if (!config.isSkipScan()) {
 				new DatabaseBuilder();
 			}
 			switch (config.getMetaphor()) {
-			case CITY: {
-				new JQA2City();
-				new JQA2JSON();
-				new City2City();
-				switch (config.getOutputFormat()) {
-				case X3D:
-					new City2X3D(); break;
-				case AFrame:
-					new City2AFrame(); break;
+				case CITY: {
+					new JQA2City();
+					new JQA2JSON();
+					new City2City();
+					switch (config.getOutputFormat()) {
+						case X3D:
+							new City2X3D();
+							break;
+						case AFrame:
+							new City2AFrame();
+							break;
+					}
+					break;
 				}
-				break;
-			}
-			case RD: {
-				if(rescan)
-				{
-					new JQA2RD();
+				case RD: {
+					if (rescan)
+						new JQA2RD();
 					log.info("JQA2RD");
-				}
-				new JQA2JSON();
-				log.info("JQA2JSON");
-				if(!rescan)
+					new JQA2JSON();
+					log.info("JQA2JSON");
+					if (!rescan)
+						break;
+					new RD2RD();
+					log.info("RD2RD");
+
+					switch (config.getOutputFormat()) {
+						case X3D: {
+							new RD2X3D();
+							break;
+						}
+						case AFrame: {
+							new RD2AFrame();
+							log.info("Fertig");
+							break;
+						}
+					}
 					break;
-				new RD2RD();
-				log.info("RD2RD");
-				switch (config.getOutputFormat()) {
-				case X3D: {
-					new RD2X3D();
-					break;
 				}
-				case AFrame: {
-					new RD2AFrame();
-					log.info("Fertig");
-					break;
-				}
-				}
-				break;
-			}
 			}
 
 		} catch (Exception e) {

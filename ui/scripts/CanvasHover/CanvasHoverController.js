@@ -218,6 +218,10 @@ var canvasHoverController = (function() {
         
 		if (entity.type === "Namespace") {
             return "Package: " + entity.name;
+		}
+		//Anzeige der Lizenz
+		if (entity.type === "Dependency") {
+            return entity.name + " ("+entity.license+")";
         }
         
         return entity.type + ": " + entity.name;        

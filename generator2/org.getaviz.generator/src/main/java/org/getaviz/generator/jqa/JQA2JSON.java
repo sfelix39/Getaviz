@@ -49,12 +49,12 @@ public class JQA2JSON {
 
 	private String toJSON(List<Node> list) {
 		StringBuilder builder = new StringBuilder();
-		boolean mavenBehandelt = false;
+		ArrayList<Long> mavenBehandelt = new ArrayList<Long>();
 		boolean hasElements = false;
 		for (final Node el : list) {
 
 			//ToDO: Wenn Maven am Ende steht wird ungültiges JSON erstellt
-			if(mavenBehandelt && el.hasLabel("Maven") )
+			if(mavenBehandelt.contains(new Long(el.id())) && el.hasLabel("Maven") )
 				continue;
 
 			if (!hasElements) {
@@ -90,14 +90,14 @@ public class JQA2JSON {
 				builder.append(toMetaDataEnumValue(el));
 				builder.append("\n");
 			}
-			if ((el.hasLabel("Dependency") && el.hasLabel("Dependency"))) {
+			if ((el.hasLabel(Labels.Dependency.name()) && el.hasLabel(Labels.Dependency.name()))) {
 				builder.append(toMetaDependency(el));
 				builder.append("\n");
 			}
-			if ((el.hasLabel("Maven") && el.hasLabel("Maven"))&& !mavenBehandelt) {
+			if ((el.hasLabel(Labels.Maven.name()) && el.hasLabel(Labels.Maven.name()))&& !mavenBehandelt.contains(new Long(el.id()))) {
 				builder.append(toMetaMaven(el));
 				builder.append("\n");
-				mavenBehandelt = true;
+				mavenBehandelt.add(new Long(el.id()));
 			}
 		}
 		if (hasElements) {
@@ -108,15 +108,17 @@ public class JQA2JSON {
 
 	private String toMetaDataNamespace(Node dependency) {
 		StatementResult parentHash = connector.executeRead(
-				"MATCH (parent:Package)-[:CONTAINS]->(namespace) WHERE ID(namespace) = " + dependency.id() + " RETURN namespace.hash");
+				"MATCH (parent:Package)-[:CONTAINS]->(namespace) WHERE ID(namespace) = " + dependency.id() + " RETURN parent.hash");
 		String belongsTo = "root";
 		if (parentHash.hasNext()) {
 			belongsTo = parentHash.single().get("parent.hash").asString();
 		}
 		StringBuilder builder = new StringBuilder();
-		builder.append("\"id\":            \"" + dependency.id() + "\",");
+		builder.append("\"id\":            \"" + dependency.get("hash").asString() + "\",");
 		builder.append("\n");
-		builder.append("\"name\":          \"" + dependency.get("namespace").asString() + "\",");
+		builder.append("\"qualifiedName\": \"" + dependency.get("fqn").asString() + "\",");
+		builder.append("\n");
+		builder.append("\"name\":          \"" + dependency.get("name").asString() + "\",");
 		builder.append("\n");
 		builder.append("\"type\":          \"FAMIX.Namespace\",");
 		builder.append("\n");
@@ -128,17 +130,22 @@ public class JQA2JSON {
 	private String toMetaDependency(Node namespace) {
 		StatementResult parentHash = connector
 				.executeRead("MATCH (parent:Package)<-[:DEPS]-(namespace) WHERE ID(namespace) = " + namespace.id()
-						+ " RETURN parent.hash");
+						+ " RETURN parent");
 		String belongsTo = "root";
+		String parentName = "";
 		if (parentHash.hasNext()) {
-			belongsTo = parentHash.single().get("parent.hash").asString();
+			{
+				Node asNode = parentHash.single().get("parent").asNode();
+				belongsTo = asNode.get("hash").asString();
+				parentName = asNode.get("name").asString();
+			}
 		}
 		StringBuilder builder = new StringBuilder();
 		builder.append("\"id\":            \"" + namespace.id() + "\",");
 		builder.append("\n");
 		builder.append("\"qualifiedName\": \"" + namespace.get("namespace").asInt() + "\",");
 		builder.append("\n");
-		builder.append("\"name\":          \"" + namespace.get("namespace").asInt() + "\",");
+		builder.append("\"name\":          \"" + String.format("Dependencies (%s)", parentName) + "\",");
 		builder.append("\n");
 		builder.append("\"type\":          \"FAMIX.DependencyRing\",");
 		builder.append("\n");
@@ -155,6 +162,11 @@ public class JQA2JSON {
 				.list();
 		int a = 0;
 		if (recs != null && recs.size() > 0) {
+			/*
+			*Hack: Da das gleiche Dependency von mehreren Namespaces verwendet werden kann, 
+			*gehen wir hier nochmal die Namespaces zum jeweiligen Dependency durch
+			*Schön ist das nicht...
+			*/
 			for(Record rec : recs)
 			{
 				if(a != 0)
@@ -172,6 +184,15 @@ public class JQA2JSON {
 
 	private String toMavenMetaDataDetail(Node parent, Node c) 
 	{
+		List<Record> recs = connector.executeRead(
+				"match (a)-[:USES_LICENSE]->(l:License) "
+						+ "where ID(a) = " + c.id() + " return l.name")
+				.list();
+		String license = "";
+		//Angenommen, jede Abhängigkeit verfügt über max. eine Abhängigkeit
+		if(recs != null && recs.size() > 0)
+			license = recs.get(0).get("l").asNode().get("name").asString();
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append("\"id\":            \"" + c.id() + "\",");
 		builder.append("\n");
@@ -180,6 +201,8 @@ public class JQA2JSON {
 		builder.append("\"name\":          \"" + c.get("name").asString() + "\",");
 		builder.append("\n");
 		builder.append("\"type\":          \"FAMIX.Dependency\",");
+		builder.append("\n");
+		builder.append("\"license\":          \""+license+"\",");
 		builder.append("\n");
 		builder.append("\"belongsTo\":     \"" + parent.id() + "\"");
 		builder.append("\n");

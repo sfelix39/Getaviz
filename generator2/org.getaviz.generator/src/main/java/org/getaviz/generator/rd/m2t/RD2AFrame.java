@@ -49,14 +49,19 @@ public class RD2AFrame {
 	private String toDisk(Node disk, Node position) {
 		double radius = disk.get("radius").asDouble();
 		Node entity = connector.getVisualizedEntity(disk.id());
+		int a;
+		if(disk.id() == 127746L)
+			 a= 0;
 		ArrayList<Node> segments = new ArrayList<>();
 		connector.executeRead("MATCH (n)-[:CONTAINS]->(ds:DiskSegment)-[:VISUALIZES]->(element) WHERE ID(n) = "
 				+ disk.id() + " RETURN ds, element.hash ORDER BY element.hash").forEachRemaining((result) -> {
 					segments.add(result.get("ds").asNode());
 				});
 		StringBuilder builder = new StringBuilder();
+		//Dependencies haben keinen Hash, deshalb die ID verwenden.
+		String id = entity.hasLabel("Dependency") ? "" + entity.id() : entity.get("hash").asString();
 		if (radius - config.getRDRingWidth() == 0) {
-			builder.append("<a-circle id=\"" + entity.get("hash").asString() + "\" ");
+			builder.append("<a-circle id=\"" + id + "\" ");
 			builder.append("\n");
 			builder.append("\t position=\"" + position.get("x") + " ");
 			builder.append(position.get("y") + " ");
@@ -81,7 +86,7 @@ public class RD2AFrame {
 			builder.append("</a-circle>");
 			builder.append("\n");
 		} else {
-			builder.append("<a-ring id=\"" + entity.get("hash").asString() + "\"");
+			builder.append("<a-ring id=\"" + id + "\"");
 			builder.append("\n");
 			builder.append("\t position=\"" + position.get("x") + " ");
 			builder.append(position.get("y") + " ");
@@ -121,8 +126,9 @@ public class RD2AFrame {
 			if(o == null)
 				o = null;
 
+			String id = entity.hasLabel("Maven") ? "" + entity.id() : entity.get("hash").asString();
 			if (segment.get("innerRadius").asDouble() == 0) {
-				builder.append("<a-circle id=\"" + entity.get("hash").asString() + "\"");
+				builder.append("<a-circle id=\"" + id + "\"");
 				builder.append("\n");
 				builder.append("\t radius=\"" + segment.get("outerRadius") + "\" ");
 				builder.append("\n");
@@ -145,7 +151,7 @@ public class RD2AFrame {
 				builder.append("</a-circle>");
 				builder.append("\n");
 			} else {
-				builder.append("<a-ring id=\"" + entity.get("hash").asString() + "\"");
+				builder.append("<a-ring id=\"" + id + "\"");
 				builder.append("\n");
 				builder.append("\t radius-inner=\"" + segment.get("innerRadius") + "\"");
 				builder.append("\n");

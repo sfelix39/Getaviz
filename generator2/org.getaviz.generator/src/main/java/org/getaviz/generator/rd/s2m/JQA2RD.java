@@ -35,6 +35,8 @@ public class JQA2RD {
 			"WHERE NOT (n)<-[:CONTAINS]-(:Package) " + 
 			"RETURN n"
 		);
+		//Dependencies werden extra extrahiert und gespeichert
+		//Könnte auch im DatabaseBuilder::enhance geschehen
 		StatementResult results1 = connector.executeRead(
 			"MATCH (n:Dependency) DETACH DELETE n"
 		);
@@ -82,6 +84,7 @@ public class JQA2RD {
 
 			if(recs.size() > 0)
 			{
+				//Wenn in dem Namespace Typen existieren, dann prüfen ob auch Dependencies verwendet werden
 				dependencyToDisk(namespace, disk);
 			}
 		}

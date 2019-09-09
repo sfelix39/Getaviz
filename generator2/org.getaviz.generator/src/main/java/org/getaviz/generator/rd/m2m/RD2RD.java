@@ -51,7 +51,8 @@ public class RD2RD {
 
 					String setString = " SET n.maxLevel = " + diskMaxLevel;
 					Node disk = result.get("d").asNode();
-					if (result.get("e").asNode().hasLabel(Labels.Package.name())) {
+					Node asNode = result.get("e").asNode();
+					if (asNode.hasLabel(Labels.Package.name()) || asNode.hasLabel("Dependency")) {
 						setString += ", n.color = \'" + setNamespaceColor(result.get("length").asInt()) + "\'";
 					}
 					connector.executeWrite("MATCH (n) WHERE ID(n) = " + disk.id() + setString);
@@ -99,7 +100,12 @@ public class RD2RD {
 				.executeRead("MATCH (n)-[:CONTAINS]->(d:DiskSegment)-[:VISUALIZES]->(:Method) WHERE ID(n) = " + disk
 						+ " SET d.size = d.size * " + config.getRDDataFactor() + " RETURN SUM(d.size) AS sum")
 				.single().get("sum").asDouble();
-		netArea = dataSum + methodSum;
+		//Die Anzahl der verwendeten Dependencies ermitteln um später diese auch als Ring statt Circle darzustellen
+		double dependencySum = connector
+				.executeRead("MATCH (n)-[:CONTAINS]->(d:DiskSegment)-[:VISUALIZES]->(:Maven) WHERE ID(n) = " + disk
+						+ " SET d.size = d.size * " + config.getRDDataFactor() + " RETURN SUM(d.size) AS sum")
+				.single().get("sum").asDouble();
+		netArea = dataSum + methodSum + dependencySum;
 		connector.executeWrite("MATCH (n) WHERE ID(n) = " + disk + " SET n.netArea = " + netArea);
 	}
 
